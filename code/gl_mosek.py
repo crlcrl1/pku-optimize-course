@@ -116,8 +116,8 @@ def mosek(_x0: NDArray,
             task.optimize()
             
             # Get the solution
-            sol = task.getxxslice(msk.soltype.itr, 2 + n, 2 + n + n * l)
-            sol = np.array(sol).reshape((n, l))
+            result = task.getxxslice(msk.soltype.itr, 2 + n, 2 + n + n * l)
+            result = np.array(result).reshape((n, l))
             
             # Get the iteration count
             num_it = task.getintinf(msk.iinfitem.intpnt_iter)
@@ -125,7 +125,7 @@ def mosek(_x0: NDArray,
             # Get the solver information
             res = {'status': task.getprosta(msk.soltype.itr), 'obj': task.getprimalobj(msk.soltype.itr)}
             
-            return sol, num_it, res
+            return result, num_it, res
 
 def mosek_test():
     A, b, x0 = generate_data()
