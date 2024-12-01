@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 
-from random_data import generate_data
+from util import generate_data, group_lasso_loss
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
@@ -52,7 +52,7 @@ def cvx_mosek_test():
     print(x)
     print(iter)
     print(opt)
-    print("Objective value: ", 0.5 * np.linalg.norm(A @ x - b, "fro") ** 2 + mu * np.sum(np.linalg.norm(x, axis=1)))
+    print("Objective value: ", group_lasso_loss(x, A, b, mu))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import gurobipy as gp
 import numpy as np
 
-from random_data import generate_data
+from util import generate_data
 from gurobipy import GRB
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
@@ -36,7 +36,7 @@ def gurobi(x0: NDArray,
     opt : dict, optional
         Options for the solver.
         
-        if it contains the key 'log', the value is whether to print the log.
+        if it contains key 'log', the value is whether to print the log.
         
     Returns
     -------
@@ -60,12 +60,13 @@ def gurobi(x0: NDArray,
     if opt is None or (opt is not None and not opt['log']):
         model.setParam('OutputFlag', False)
     
-    # Set constrains
+    # Set constrain for t >= ||Ax - b||_F^2
     t1 = model.addVar(lb=-GRB.INFINITY, name='t1')
     t2 = model.addVar(lb=-GRB.INFINITY, name='t2')
     model.addConstr(t1 == t + 1)
     model.addConstr(t2 == t - 1)
     
+    # Calculate Ax - b and store it in temp values
     temp_list = []
     for i in range(m):
         for j in range(l):
@@ -78,6 +79,7 @@ def gurobi(x0: NDArray,
     quad_expr.addTerms([1] * m * l, temp_list, temp_list)
     model.addQConstr(quad_expr, sense=GRB.LESS_EQUAL, rhs=0, name='Ax-b')
     
+    # Set constrains for ||x(i, :)||_2 <= s_i
     for i in range(n):
         quad_expr = gp.QuadExpr()
         quad_expr.addTerms([1] * l, x[i], x[i])
@@ -89,6 +91,7 @@ def gurobi(x0: NDArray,
     
     model.optimize()
     
+    # Get the result
     result = [[model.getVarByName(f'x{i}{j}').X for j in range(l)] for i in range(n)]
     result = np.array(result)
     
@@ -100,11 +103,10 @@ def gurobi(x0: NDArray,
 def gurobi_test():
     A, b, x0 = generate_data()
     mu = 1e-2
-    x, iter_num, opt = gurobi(x0, A, b, mu)
+    x, iter_num, opt = gurobi(x0, A, b, mu, {'log': True})
     print(x)
     print(iter_num)
     print(opt)
-    print("Objective value: ", 0.5 * np.linalg.norm(A @ x - b, "fro") ** 2 + mu * np.sum(np.linalg.norm(x, axis=1)))
 
 
 if __name__ == '__main__':

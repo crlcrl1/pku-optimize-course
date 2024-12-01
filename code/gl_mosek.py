@@ -2,7 +2,7 @@ import mosek as msk
 import numpy as np
 import sys
 
-from random_data import generate_data
+from util import generate_data
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
@@ -40,8 +40,8 @@ def mosek(_x0: NDArray,
     opt : dict, optional
         Options for the solver.
         
-        if it contains the key 'maxtime', the value is the maximum time in seconds.
-        if it contains the key 'log', the value is whether to print the log.
+        if it contains key 'maxtime', the value is the maximum time in seconds.
+        if it contains key 'log', the value is whether to print the log.
 
     Returns
     -------
@@ -130,7 +130,10 @@ def mosek(_x0: NDArray,
 def mosek_test():
     A, b, x0 = generate_data()
     mu = 1e-2
-    print(mosek(x0, A, b, mu, {'log': True}))
+    x, iter_num, opt = mosek(x0, A, b, mu, {'log': True})
+    print(x)
+    print(iter_num)
+    print(opt)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,3 @@
-"""
-Generate random data for the group LASSO problem.
-"""
-
 import numpy as np
 from numpy.typing import NDArray
 from typing import Tuple
@@ -34,3 +30,10 @@ def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray]:
     b = A @ u
     x0 = np.random.randn(n, l)
     return A, b, x0
+
+
+def group_lasso_loss(A: NDArray, b: NDArray, x: NDArray, mu: float):
+    """
+    Compute the group LASSO loss.
+    """
+    return 0.5 * np.linalg.norm(A @ x - b, "fro") ** 2 + mu * np.sum(np.linalg.norm(x, axis=1))
