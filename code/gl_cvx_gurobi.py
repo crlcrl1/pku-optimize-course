@@ -5,6 +5,7 @@ from util import generate_data, group_lasso_loss
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
+
 def cvx_gurobi(x0: NDArray,
                A: NDArray,
                b: NDArray,
@@ -41,9 +42,9 @@ def cvx_gurobi(x0: NDArray,
         prob.solve(solver=cp.GUROBI, **opt)
     else:
         prob.solve(solver=cp.GUROBI)
-    
+
     iters = prob.solver_stats.num_iters if prob.solver_stats.num_iters is not None else -1
-    
+
     return x.value, iters, prob.solver_stats
 
 
@@ -54,7 +55,7 @@ def cvx_gurobi_test():
     print(x)
     print(iter_num)
     print(opt)
-    print("Objective value: ", group_lasso_loss(x, A, b, mu))
+    print("Objective value: ", group_lasso_loss(A, b, x, mu))
 
 
 if __name__ == "__main__":

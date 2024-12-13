@@ -5,6 +5,7 @@ from util import generate_data, group_lasso_loss
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
+
 def cvx_mosek(x0: NDArray,
               A: NDArray,
               b: NDArray,
@@ -41,7 +42,7 @@ def cvx_mosek(x0: NDArray,
         prob.solve(solver=cp.MOSEK, **opt)
     else:
         prob.solve(solver=cp.MOSEK)
-    
+
     return x.value, prob.solver_stats.num_iters, prob.solver_stats
 
 
@@ -52,7 +53,7 @@ def cvx_mosek_test():
     print(x)
     print(iter)
     print(opt)
-    print("Objective value: ", group_lasso_loss(x, A, b, mu))
+    print("Objective value: ", group_lasso_loss(A, b, x, mu))
 
 
 if __name__ == "__main__":

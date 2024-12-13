@@ -1,6 +1,6 @@
 import numpy as np
 
-from util import generate_data, group_lasso_loss
+from util import generate_data, group_lasso_loss, extract_config
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
@@ -10,7 +10,7 @@ def DG_primal(x0: NDArray,
               b: NDArray,
               mu: float,
               opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
-    """
+    r"""
     Solve the group LASSO problem with smooth approximation using Gradient Descent.
     
     We will use
@@ -45,47 +45,48 @@ def DG_primal(x0: NDArray,
         The solution, the iteration count(-1 if known), and the solver information.
 
         The solver information contains the following keys:
+
         - 'obj_val': the list of objective values during the iterations.
         - 'grad_norm': the list of gradient norms during the iterations.
     """
     m, n = A.shape
     iter_count = 0
     x = x0
-    
+
     step_size = 1 / np.linalg.norm(A, ord=2) ** 2
     f_last = np.inf
-    tol = 1e-7 if opt is None or 'tol' not in opt else opt['tol']
-    max_iter = 5000 if opt is None or 'maxiter' not in opt else opt['maxiter']
-    sigma = 1e-5 if opt is None or 'sigma' not in opt else opt['sigma']
-    log = True if opt is None or 'log' not in opt else opt['log']
+    tol = extract_config(opt, 'tol', 1e-8)
+    max_iter = extract_config(opt, 'max_iter', 5000)
+    log = extract_config(opt, 'log', True)
+    sigma = extract_config(opt, 'sigma', 1e-6)
     orig_mu = mu
-    
-    mu_list = list(reversed([(2 ** i) * mu for i in range(10)]))
+
+    mu_list = list(reversed([(3 ** i) * mu for i in range(7)]))
+    sigma_list = list(reversed([sigma * (3 ** i) for i in range(7)]))
     last_idx = len(mu_list) - 1
-    
+
     if log:
-        print(f"Start the subgradient descent algorithm with step size {step_size}.")
-    
+        print(f"Start the gradient descent algorithm with step size {step_size}.")
+
     obj_val_list = []
     grad_norm_list = []
-    
-    for k, mu in enumerate(mu_list):
+
+    for k, (mu, sigma) in enumerate(zip(mu_list, sigma_list)):
         if iter_count > max_iter:
             break
-        
+
         inner_iter = 0
         while True:
             # If log is enabled, print the log every 100 iterations.
             if log and iter_count % 100 == 0:
-                print("Iteration:", iter_count, end=", ")
-                print("Objective value:", group_lasso_loss(A, b, x, orig_mu))
-            
+                print(f"Iteration: {iter_count}, Objective value: {group_lasso_loss(A, b, x, orig_mu)}")
+
             iter_count += 1
             inner_iter += 1
-            
-            if iter_count > max_iter or (inner_iter > 500 and k != last_idx):
+
+            if iter_count > max_iter or (inner_iter > 300 and k != last_idx):
                 break
-            
+
             # Compute the gradient.
             grad = A.T @ (A @ x - b)
             for i in range(n):
@@ -94,26 +95,31 @@ def DG_primal(x0: NDArray,
                     grad[i, :] += mu * x[i, :] / sigma
                 else:
                     grad[i, :] += mu * x[i, :] / norm
-            
+
+            if k != last_idx:
+                step = step_size
+            else:
+                step = step_size if inner_iter <= 200 else step_size / np.sqrt(inner_iter - 200)
+
             # Update the solution.
-            x -= step_size * grad
+            x -= step * grad
             f_new = group_lasso_loss(A, b, x, mu)
             grad_norm = np.linalg.norm(grad, ord="fro")
-            
+
             obj_val_list.append(f_new)
             grad_norm_list.append(grad_norm)
-            
-            if grad_norm * step_size < tol or abs(f_last - f_new) < tol:
+
+            if grad_norm * step < tol or abs(f_last - f_new) < tol:
                 break
-            
+
             f_last = f_new
-    
+
     return x, iter_count, {'obj_val': obj_val_list, 'grad_norm': grad_norm_list}
 
 
-def SDG_primal_test():
+def DG_primal_test():
     import matplotlib.pyplot as plt
-    
+
     A, b, x0 = generate_data()
     mu = 1e-2
     x, iter_count, out = DG_primal(x0, A, b, mu, {'log': True})
@@ -134,4 +140,4 @@ def SDG_primal_test():
 
 
 if __name__ == '__main__':
-    SDG_primal_test()
+    DG_primal_test()

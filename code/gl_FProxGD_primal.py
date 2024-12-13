@@ -5,14 +5,14 @@ from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
 
-def SDG_primal(x0: NDArray,
-               A: NDArray,
-               b: NDArray,
-               mu: float,
-               opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def FProxGD_primal(x0: NDArray,
+                   A: NDArray,
+                   b: NDArray,
+                   mu: float,
+                   opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     """
-    Solve the group LASSO problem using Subgradient Descent.
-    
+    Solve the group LASSO problem using Fast Proximal Gradient Descent.
+
     Parameters
     ----------
     x0 : NDArray
@@ -25,22 +25,23 @@ def SDG_primal(x0: NDArray,
         The parameter in the geometric programming problem.
     opt : dict, optional
         Options for the solver.
-        
+
         if it contains key 'tol', the value is the tolerance.
         if it contains key 'maxiter', the value is the maximum iteration.
         if it contains key 'log', the value is whether to print the log.
-    
+
     Returns
     -------
     Tuple[NDArray, int, Dict]
         The solution, the iteration count(-1 if known), and the solver information.
-        
+
         The solver information contains the following keys:
 
         - 'obj_val': the list of objective values during the iterations.
         - 'grad_norm': the list of gradient norms during the iterations.
     """
     m, n = A.shape
+    _, l = b.shape
     iter_count = 0
     x = x0
 
@@ -51,14 +52,15 @@ def SDG_primal(x0: NDArray,
     log = extract_config(opt, 'log', True)
     orig_mu = mu
 
-    mu_list = list(reversed([(2.5 ** i) * mu for i in range(8)]))
+    mu_list = list(reversed([(5 ** i) * mu for i in range(6)]))
     last_idx = len(mu_list) - 1
 
     if log:
-        print(f"Start the subgradient descent algorithm with step size {step_size}.")
+        print(f"Start the gradient descent algorithm with step size {step_size}.")
 
     obj_val_list = []
     grad_norm_list = []
+    last_x = [x.copy(), x.copy()]
 
     for k, mu in enumerate(mu_list):
         if iter_count > max_iter:
@@ -73,22 +75,23 @@ def SDG_primal(x0: NDArray,
             iter_count += 1
             inner_iter += 1
 
-            if iter_count > max_iter or (inner_iter > 400 and k != last_idx):
+            if iter_count > max_iter or (inner_iter > 200 and k != last_idx):
                 break
-
-            # Compute the gradient.
-            grad = A.T @ (A @ x - b)
-            for i in range(n):
-                norm = np.linalg.norm(x[i, :], ord=2)
-                grad[i, :] += mu * x[i, :] / norm
 
             if k != last_idx:
                 step = step_size
             else:
-                step = step_size if inner_iter <= 200 else step_size / np.sqrt(inner_iter - 200)
+                step = step_size if inner_iter <= 100 else step_size / np.sqrt(inner_iter - 100)
 
-            # Update the solution.
-            x -= step * grad
+            y = last_x[1] - (inner_iter - 1) / (inner_iter + 2) * (last_x[1] - last_x[0])
+            grad = A.T @ (A @ y - b)
+            x = y - step * grad
+
+            # Apply prox
+            for i in range(n):
+                norm = np.linalg.norm(x[i, :])
+                x[i, :] = np.zeros(l, dtype=float) if norm < step * mu else (1 - (mu * step) / norm) * x[i, :]
+
             f_new = group_lasso_loss(A, b, x, mu)
             grad_norm = np.linalg.norm(grad, ord="fro")
 
@@ -99,16 +102,18 @@ def SDG_primal(x0: NDArray,
                 break
 
             f_last = f_new
+            last_x[0] = last_x[1]
+            last_x[1] = x.copy()
 
     return x, iter_count, {'obj_val': obj_val_list, 'grad_norm': grad_norm_list}
 
 
-def SDG_primal_test():
+def FProxGD_primal_test():
     import matplotlib.pyplot as plt
 
     A, b, x0 = generate_data()
     mu = 1e-2
-    x, iter_count, out = SDG_primal(x0, A, b, mu, {'log': True})
+    x, iter_count, out = FProxGD_primal(x0, A, b, mu, {'log': True})
     print(x)
     print(iter_count)
     print("Objective value: ", group_lasso_loss(A, b, x, mu))
@@ -126,4 +131,4 @@ def SDG_primal_test():
 
 
 if __name__ == '__main__':
-    SDG_primal_test()
+    FProxGD_primal_test()

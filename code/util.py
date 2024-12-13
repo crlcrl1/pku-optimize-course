@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
-from typing import Tuple
+from typing import Tuple, Dict
+
 
 def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray]:
     """
@@ -16,7 +17,7 @@ def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray]:
     Tuple[NDArray, NDArray, NDArray]
         The data matrix A, the response vector b, and the initial guess x0.
     """
-    
+
     np.random.seed(seed)
     n = 512
     m = 256
@@ -37,3 +38,7 @@ def group_lasso_loss(A: NDArray, b: NDArray, x: NDArray, mu: float):
     Compute the group LASSO loss.
     """
     return 0.5 * np.linalg.norm(A @ x - b, "fro") ** 2 + mu * np.sum(np.linalg.norm(x, axis=1))
+
+
+def extract_config(opt: Dict, key: str, default=None):
+    return default if opt is None or key not in opt else opt[key]
