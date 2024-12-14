@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Callable
 
 
 def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray]:
@@ -40,5 +40,41 @@ def group_lasso_loss(A: NDArray, b: NDArray, x: NDArray, mu: float):
     return 0.5 * np.linalg.norm(A @ x - b, "fro") ** 2 + mu * np.sum(np.linalg.norm(x, axis=1))
 
 
+def dual_loss(b: NDArray, y: NDArray) -> float:
+    """
+    Compute the dual loss.
+    """
+    return 0.5 * np.linalg.norm(y, "fro") ** 2 - np.sum(b * y)
+
+
 def extract_config(opt: Dict, key: str, default=None):
     return default if opt is None or key not in opt else opt[key]
+
+
+def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True):
+    import matplotlib.pyplot as plt
+    import time
+
+    A, b, x0 = generate_data()
+    mu = 1e-2
+    start = time.time()
+    x, iter_count, out = func(x0, A, b, mu, {'log': True})
+    end = time.time()
+    print("Time: ", end - start)
+    print(x)
+    print(iter_count)
+    print("Objective value: ", group_lasso_loss(A, b, x, mu))
+    if plot:
+        losses = out['obj_val']
+        ax = plt.subplot(121)
+        ax.plot(np.arange(len(losses)), losses)
+        if log_scale:
+            ax.set_yscale('log')
+        ax.set_title("Objective value")
+        data = out['grad_norm'] if 'grad_norm' in out else out['dual_gap']
+        ax = plt.subplot(122)
+        ax.plot(np.arange(len(data)), data)
+        if log_scale:
+            ax.set_yscale('log')
+        ax.set_title("Gradient norm" if 'grad_norm' in out else "Dual gap")
+        plt.show()

@@ -1,8 +1,9 @@
-import numpy as np
-
-from util import generate_data, group_lasso_loss, extract_config
-from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
+
+import numpy as np
+from numpy.typing import NDArray
+
+from util import group_lasso_loss, extract_config, test_and_plot
 
 
 def ProxGD_primal(x0: NDArray,
@@ -40,7 +41,6 @@ def ProxGD_primal(x0: NDArray,
         - 'obj_val': the list of objective values during the iterations.
         - 'grad_norm': the list of gradient norms during the iterations.
     """
-    m, n = A.shape
     _, l = b.shape
     iter_count = 0
     x = x0
@@ -52,11 +52,8 @@ def ProxGD_primal(x0: NDArray,
     log = extract_config(opt, 'log', True)
     orig_mu = mu
 
-    mu_list = list(reversed([(4 ** i) * mu for i in range(7)]))
+    mu_list = list(reversed([(5 ** i) * mu for i in range(6)]))
     last_idx = len(mu_list) - 1
-
-    if log:
-        print(f"Start the gradient descent algorithm with step size {step_size}.")
 
     obj_val_list = []
     grad_norm_list = []
@@ -74,7 +71,7 @@ def ProxGD_primal(x0: NDArray,
             iter_count += 1
             inner_iter += 1
 
-            if iter_count > max_iter or (inner_iter > 400 and k != last_idx):
+            if iter_count > max_iter or (inner_iter > 200 and k != last_idx):
                 break
 
             # Compute the gradient.
@@ -89,9 +86,8 @@ def ProxGD_primal(x0: NDArray,
             x -= step * grad
 
             # Apply prox
-            for i in range(n):
-                norm = np.linalg.norm(x[i, :])
-                x[i, :] = np.zeros(l, dtype=float) if norm < step * mu else (1 - (mu * step) / norm) * x[i, :]
+            norms = np.linalg.norm(x, axis=1, keepdims=True)
+            x -= x * np.minimum(1, mu * step / norms)
 
             f_new = group_lasso_loss(A, b, x, mu)
             grad_norm = np.linalg.norm(grad, ord="fro")
@@ -107,27 +103,5 @@ def ProxGD_primal(x0: NDArray,
     return x, iter_count, {'obj_val': obj_val_list, 'grad_norm': grad_norm_list}
 
 
-def ProxGD_primal_test():
-    import matplotlib.pyplot as plt
-
-    A, b, x0 = generate_data()
-    mu = 1e-2
-    x, iter_count, out = ProxGD_primal(x0, A, b, mu, {'log': True})
-    print(x)
-    print(iter_count)
-    print("Objective value: ", group_lasso_loss(A, b, x, mu))
-    losses = out['obj_val']
-    grad_norms = out['grad_norm']
-    ax = plt.subplot(121)
-    ax.plot(np.arange(len(losses)), losses)
-    ax.set_yscale('log')
-    ax.set_title("Objective value")
-    ax = plt.subplot(122)
-    ax.plot(np.arange(len(grad_norms)), grad_norms)
-    ax.set_yscale('log')
-    ax.set_title("Gradient norm")
-    plt.show()
-
-
 if __name__ == '__main__':
-    ProxGD_primal_test()
+    test_and_plot(ProxGD_primal)

@@ -1,8 +1,9 @@
-import numpy as np
-
-from util import generate_data, group_lasso_loss, extract_config
-from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
+
+import numpy as np
+from numpy.typing import NDArray
+
+from util import group_lasso_loss, extract_config, test_and_plot
 
 
 def DG_primal(x0: NDArray,
@@ -49,7 +50,6 @@ def DG_primal(x0: NDArray,
         - 'obj_val': the list of objective values during the iterations.
         - 'grad_norm': the list of gradient norms during the iterations.
     """
-    m, n = A.shape
     iter_count = 0
     x = x0
 
@@ -61,8 +61,8 @@ def DG_primal(x0: NDArray,
     sigma = extract_config(opt, 'sigma', 1e-6)
     orig_mu = mu
 
-    mu_list = list(reversed([(3 ** i) * mu for i in range(7)]))
-    sigma_list = list(reversed([sigma * (3 ** i) for i in range(7)]))
+    mu_list = list(reversed([(4 ** i) * mu for i in range(7)]))
+    sigma_list = list(reversed([sigma * (4 ** i) for i in range(7)]))
     last_idx = len(mu_list) - 1
 
     if log:
@@ -84,22 +84,20 @@ def DG_primal(x0: NDArray,
             iter_count += 1
             inner_iter += 1
 
-            if iter_count > max_iter or (inner_iter > 300 and k != last_idx):
+            if iter_count > max_iter or (inner_iter > 250 and k != last_idx):
                 break
 
             # Compute the gradient.
             grad = A.T @ (A @ x - b)
-            for i in range(n):
-                norm = np.linalg.norm(x[i, :], ord=2)
-                if norm <= sigma:
-                    grad[i, :] += mu * x[i, :] / sigma
-                else:
-                    grad[i, :] += mu * x[i, :] / norm
+            norms = np.linalg.norm(x, ord=2, axis=1)
+            idx = norms > sigma
+            grad[idx, :] += mu * x[idx, :] / norms[idx][:, None]
+            grad[~idx, :] += mu * x[~idx, :] / sigma
 
             if k != last_idx:
                 step = step_size
             else:
-                step = step_size if inner_iter <= 200 else step_size / np.sqrt(inner_iter - 200)
+                step = step_size if inner_iter <= 50 else step_size / np.sqrt(inner_iter - 50)
 
             # Update the solution.
             x -= step * grad
@@ -117,27 +115,5 @@ def DG_primal(x0: NDArray,
     return x, iter_count, {'obj_val': obj_val_list, 'grad_norm': grad_norm_list}
 
 
-def DG_primal_test():
-    import matplotlib.pyplot as plt
-
-    A, b, x0 = generate_data()
-    mu = 1e-2
-    x, iter_count, out = DG_primal(x0, A, b, mu, {'log': True})
-    print(x)
-    print(iter_count)
-    print("Objective value: ", group_lasso_loss(A, b, x, mu))
-    losses = out['obj_val']
-    grad_norms = out['grad_norm']
-    ax = plt.subplot(121)
-    ax.plot(np.arange(len(losses)), losses)
-    ax.set_yscale('log')
-    ax.set_title("Objective value")
-    ax = plt.subplot(122)
-    ax.plot(np.arange(len(grad_norms)), grad_norms)
-    ax.set_yscale('log')
-    ax.set_title("Gradient norm")
-    plt.show()
-
-
 if __name__ == '__main__':
-    DG_primal_test()
+    test_and_plot(DG_primal)
