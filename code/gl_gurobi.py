@@ -45,27 +45,27 @@ def gurobi(x0: NDArray,
     """
     m, n = A.shape
     _, l = b.shape
-    
+
     model = gp.Model("LASSO")
     x = [[model.addVar(name=f'x{i}{j}', lb=-GRB.INFINITY) for j in range(l)] for i in range(n)]
     t = model.addVar(name='t', lb=0)
     s = [model.addVar(name=f's{i}', lb=0) for i in range(n)]
-    
+
     # Set initial guess
     for i in range(n):
         for j in range(l):
             x[i][j].start = x0[i, j]
-    
+
     # Set no log
     if opt is None or (opt is not None and not opt['log']):
         model.setParam('OutputFlag', False)
-    
+
     # Set constrain for t >= ||Ax - b||_F^2
     t1 = model.addVar(lb=-GRB.INFINITY, name='t1')
     t2 = model.addVar(lb=-GRB.INFINITY, name='t2')
     model.addConstr(t1 == t + 1)
     model.addConstr(t2 == t - 1)
-    
+
     # Calculate Ax - b and store it in temp values
     temp_list = []
     for i in range(m):
@@ -73,30 +73,30 @@ def gurobi(x0: NDArray,
             temp = model.addVar(lb=-GRB.INFINITY, name=f'temp{i}{j}')
             temp_list.append(temp)
             model.addConstr(temp == gp.quicksum(A[i, k] * x[k][j] for k in range(n)) - b[i, j])
-    
+
     quad_expr = gp.QuadExpr()
     quad_expr.addTerms([-1, 1], [t1, t2], [t1, t2])
     quad_expr.addTerms([1] * m * l, temp_list, temp_list)
     model.addQConstr(quad_expr, sense=GRB.LESS_EQUAL, rhs=0, name='Ax-b')
-    
+
     # Set constrains for ||x(i, :)||_2 <= s_i
     for i in range(n):
         quad_expr = gp.QuadExpr()
         quad_expr.addTerms([1] * l, x[i], x[i])
         quad_expr.addTerms(-1, s[i], s[i])
         model.addQConstr(quad_expr, sense=GRB.LESS_EQUAL, rhs=0, name=f'x{i}')
-    
+
     # Set objective
     model.setObjective(0.5 * t + mu * gp.quicksum(s), GRB.MINIMIZE)
-    
+
     model.optimize()
-    
+
     # Get the result
     result = [[model.getVarByName(f'x{i}{j}').X for j in range(l)] for i in range(n)]
     result = np.array(result)
-    
+
     obj_val = model.ObjVal
-    
+
     return result, -1, {'obj': obj_val}
 
 

@@ -104,4 +104,4 @@ def ProxGD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(ProxGD_primal)
+    test_and_plot(ProxGD_primal, benchmark=True)

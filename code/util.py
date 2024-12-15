@@ -51,16 +51,13 @@ def extract_config(opt: Dict, key: str, default=None):
     return default if opt is None or key not in opt else opt[key]
 
 
-def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True):
+def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True, benchmark: bool = False):
     import matplotlib.pyplot as plt
     import time
 
     A, b, x0 = generate_data()
     mu = 1e-2
-    start = time.time()
     x, iter_count, out = func(x0, A, b, mu, {'log': True})
-    end = time.time()
-    print("Time: ", end - start)
     print(x)
     print(iter_count)
     print("Objective value: ", group_lasso_loss(A, b, x, mu))
@@ -78,3 +75,12 @@ def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True):
             ax.set_yscale('log')
         ax.set_title("Gradient norm" if 'grad_norm' in out else "Dual gap")
         plt.show()
+
+    if benchmark:
+        for _ in range(50):
+            func(x0, A, b, mu, {'log': False})
+        start = time.time()
+        for _ in range(500):
+            func(x0, A, b, mu, {'log': False})
+        end = time.time()
+        print(f"Benchmark: {(end - start) * 2} ms")

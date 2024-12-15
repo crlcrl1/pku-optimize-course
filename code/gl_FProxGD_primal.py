@@ -66,7 +66,7 @@ def FProxGD_primal(x0: NDArray,
         inner_iter = 0
         while True:
             # If log is enabled, print the log every 100 iterations.
-            if log and iter_count % 100 == 0:
+            if log and iter_count % 20 == 0:
                 print(f"Iteration: {iter_count}, Objective value: {group_lasso_loss(A, b, x, orig_mu)}")
 
             iter_count += 1
@@ -105,4 +105,4 @@ def FProxGD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(FProxGD_primal)
+    test_and_plot(FProxGD_primal, benchmark=True)

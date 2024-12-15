@@ -6,13 +6,13 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, test_and_plot
 
 
-def ALM_dual(x0: NDArray,
-             A: NDArray,
-             b: NDArray,
-             mu: float,
-             opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def ADMM_dual(x0: NDArray,
+              A: NDArray,
+              b: NDArray,
+              mu: float,
+              opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     r"""
-    Solve the group LASSO problem using Augmented Lagrangian method.
+    Solve the group LASSO problem using Alternating Direction Method of Multipliers (ADMM).
 
     dual form of the group LASSO problem:
     :math:
@@ -75,7 +75,6 @@ def ALM_dual(x0: NDArray,
     iter_count = 0
 
     tol = extract_config(opt, 'tol', 1e-8)
-    tol_inner = extract_config(opt, 'tol_inner', 1e-4)
     max_iter = extract_config(opt, 'maxiter', 5000)
     log = extract_config(opt, 'log', True)
 
@@ -86,10 +85,9 @@ def ALM_dual(x0: NDArray,
     obj_val_list = []
     dual_gap_list = []
 
-    sigma = 100.0
-    total_iter = 0
+    rho = 100.0
 
-    inv = np.linalg.inv(sigma * A @ A.T + np.eye(m))
+    inv = np.linalg.inv(rho * A @ A.T + np.eye(m))
     step_size = (1 + np.sqrt(5)) / 2
 
     while iter_count <= max_iter:
@@ -98,19 +96,19 @@ def ALM_dual(x0: NDArray,
 
         iter_count += 1
 
-        for i in range(50):
-            total_iter += 1
-            y = inv @ (A @ (sigma * z - x) - b)
-            z_old = z.copy()
-            z = x / sigma + A.T @ y
-            norms = np.linalg.norm(z, axis=1, keepdims=True)
-            mask = norms < mu
-            norms[mask] = mu
-            z = z * (mu / norms)
-            if np.linalg.norm(z - z_old, ord="fro") < tol_inner:
-                break
+        # update y
+        y = inv @ (A @ (rho * z - x) - b)
 
-        x = x + step_size * sigma * (A.T @ y - z)
+        # update z
+        z = x / rho + A.T @ y
+        norms = np.linalg.norm(z, axis=1, keepdims=True)
+        mask = norms < mu
+        norms[mask] = mu
+        z = z * (mu / norms)
+
+        # update x
+        x = x + step_size * rho * (A.T @ y - z)
+
         obj_val = group_lasso_loss(A, b, -x, mu)
         obj_val_list.append(obj_val)
         dual_val = np.sum(b * y) + 0.5 * np.linalg.norm(y, "fro") ** 2
@@ -118,10 +116,8 @@ def ALM_dual(x0: NDArray,
         if np.linalg.norm(A.T @ y - z, ord="fro") < tol:
             break
 
-    if log:
-        print(f"Total inner iterations: {total_iter}")
     return -x, iter_count, {'obj_val': obj_val_list, 'dual_gap': dual_gap_list}
 
 
 if __name__ == '__main__':
-    test_and_plot(ALM_dual, log_scale=False, benchmark=True)
+    test_and_plot(ADMM_dual, log_scale=False, benchmark=True)
