@@ -4,7 +4,7 @@ Error mosek: 2.616487e-07
 Error gurobi: 0.000000e+00
 Error exact: 3.199129e-05
 Sparsity: 0.1045
-Iteration count: -1
+Iteration count: 10
 Benchmark for cvx_gurobi is skipped.
 
 ========= Method cvx_mosek =========
@@ -17,13 +17,13 @@ Iteration count: 9
 Benchmark for cvx_mosek is skipped.
 
 ========= Method gurobi =========
-Objective value: 0.67067805
-Error mosek: 9.512311e-05
-Error gurobi: 9.499679e-05
-Error exact: 1.269824e-04
-Sparsity: 0.1074
-Iteration count: -1
-Benchmark for gurobi is skipped.
+Objective value: 0.67058679
+Error mosek: 3.174155e-05
+Error gurobi: 3.186995e-05
+Error exact: 1.748776e-07
+Sparsity: 0.0996
+Iteration count: 8
+Benchmark: 1072.6585 ms
 
 ========= Method mosek =========
 Objective value: 0.67057522

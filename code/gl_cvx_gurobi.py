@@ -40,7 +40,7 @@ def cvx_gurobi(x0: NDArray,
     prob = cp.Problem(cp.Minimize(obj))
     prob.solve(solver=cp.GUROBI)
 
-    iters = prob.solver_stats.num_iters if prob.solver_stats.num_iters is not None else -1
+    iters = prob.solver_stats.extra_stats.BarIterCount
 
     return x.value, iters, prob.solver_stats
 

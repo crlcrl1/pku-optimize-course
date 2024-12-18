@@ -65,21 +65,16 @@ def gurobi(x0: NDArray,
         model.setParam("OutputFlag", False)
 
     # Set constrain for t >= ||Ax - b||_F^2
-    t1 = model.addVar(lb=-GRB.INFINITY, name="t1")
-    t2 = model.addVar(lb=-GRB.INFINITY, name="t2")
-    model.addConstr(t1 == t + 1)
-    model.addConstr(t2 == t - 1)
-
     # Calculate Ax - b and store it in temp values
     temp_list = []
     for i in range(m):
         for j in range(l):
             temp = model.addVar(lb=-GRB.INFINITY, name=f"temp{i}{j}")
             temp_list.append(temp)
-            model.addConstr(temp == gp.quicksum(A[i, k] * x[k][j] for k in range(n)) - b[i, j])
+            model.addConstr(temp == sum([A[i, k] * x[k][j] for k in range(n)]) - b[i, j])
 
     quad_expr = gp.QuadExpr()
-    quad_expr.addTerms([-1, 1], [t1, t2], [t1, t2])
+    quad_expr.addTerms([-1], [t], [t])
     quad_expr.addTerms([1] * m * l, temp_list, temp_list)
     model.addQConstr(quad_expr, sense=GRB.LESS_EQUAL, rhs=0, name="Ax-b")
 
@@ -101,7 +96,7 @@ def gurobi(x0: NDArray,
 
     obj_val = model.ObjVal
 
-    return result, -1, {"obj": obj_val}
+    return result, model.BarIterCount, {"obj": obj_val}
 
 
 if __name__ == "__main__":

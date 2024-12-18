@@ -76,9 +76,9 @@ def run_method(func: Callable, plot: bool = True, log_scale: bool = True, benchm
     if output:
         print(f"Objective value: {group_lasso_loss(A, b, x, mu):.8f}")
         gurobi_ans = kwargs.get('gurobi_ans', None)
-        moesk_ans = kwargs.get('mosek_ans', None)
-        if moesk_ans is not None:
-            print(f"Error mosek: {np.linalg.norm(x - moesk_ans, 'fro') / (1 + np.linalg.norm(moesk_ans, 'fro')):.6e}")
+        mosek_ans = kwargs.get('mosek_ans', None)
+        if mosek_ans is not None:
+            print(f"Error mosek: {np.linalg.norm(x - mosek_ans, 'fro') / (1 + np.linalg.norm(mosek_ans, 'fro')):.6e}")
         if gurobi_ans is not None:
             print(
                 f"Error gurobi: {np.linalg.norm(x - gurobi_ans, 'fro') / (1 + np.linalg.norm(gurobi_ans, 'fro')):.6e}")
