@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 from typing import Tuple, Dict, Callable
 
 
-def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray]:
+def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray, NDArray]:
     """
     Generate random data for the group LASSO problem.
     
@@ -30,7 +30,7 @@ def generate_data(seed: int = 97006855) -> Tuple[NDArray, NDArray, NDArray]:
     u[p, :] = np.random.randn(k, l)
     b = A @ u
     x0 = np.random.randn(n, l)
-    return A, b, x0
+    return A, b, x0, u
 
 
 def group_lasso_loss(A: NDArray, b: NDArray, x: NDArray, mu: float):
@@ -40,27 +40,51 @@ def group_lasso_loss(A: NDArray, b: NDArray, x: NDArray, mu: float):
     return 0.5 * np.linalg.norm(A @ x - b, "fro") ** 2 + mu * np.sum(np.linalg.norm(x, axis=1))
 
 
-def dual_loss(b: NDArray, y: NDArray) -> float:
-    """
-    Compute the dual loss.
-    """
-    return 0.5 * np.linalg.norm(y, "fro") ** 2 - np.sum(b * y)
-
-
 def extract_config(opt: Dict, key: str, default=None):
     return default if opt is None or key not in opt else opt[key]
 
 
-def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True, benchmark: bool = False):
-    import matplotlib.pyplot as plt
+def bench_mark(func: Callable) -> float:
     import time
 
-    A, b, x0 = generate_data()
+    A, b, x0, u = generate_data()
     mu = 1e-2
-    x, iter_count, out = func(x0, A, b, mu, {'log': True})
-    print(x)
-    print(iter_count)
-    print("Objective value: ", group_lasso_loss(A, b, x, mu))
+    for _ in range(50):
+        func(x0, A, b, mu, {'log': False})
+    start = time.time()
+    for _ in range(500):
+        func(x0, A, b, mu, {'log': False})
+    end = time.time()
+    return (end - start) * 2
+
+
+def sparisity(x: NDArray) -> float:
+    elem_num = 1
+    for i in x.shape:
+        elem_num *= i
+    max_elem = np.max(np.abs(x))
+    return np.sum(np.abs(x) > (1e-6 * max_elem)) / elem_num
+
+
+def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True, benchmark: bool = False,
+                  log: bool = True, seed: int = 97006855, output: bool = True, **kwargs) -> NDArray:
+    import matplotlib.pyplot as plt
+
+    A, b, x0, u = generate_data(seed)
+    mu = 1e-2
+    x, iter_count, out = func(x0, A, b, mu, {'log': log})
+    if output:
+        print(f"Iteration count: {iter_count}")
+        print(f"Objective value: {group_lasso_loss(A, b, x, mu)}")
+        print(f"Sparsity: {sparisity(x)}")
+        print(f"Error exact: {np.linalg.norm(x - u, 'fro') / (1 + np.linalg.norm(u, 'fro'))}")
+        gurobi_ans = kwargs.get('gurobi_ans', None)
+        if gurobi_ans is not None:
+            print(f"Error gurobi: {np.linalg.norm(x - gurobi_ans, 'fro') / (1 + np.linalg.norm(gurobi_ans, 'fro'))}")
+        moesk_ans = kwargs.get('mosek_ans', None)
+        if moesk_ans is not None:
+            print(f"Error mosek: {np.linalg.norm(x - moesk_ans, 'fro') / (1 + np.linalg.norm(moesk_ans, 'fro'))}")
+
     if plot:
         losses = out['obj_val']
         ax = plt.subplot(121)
@@ -77,10 +101,14 @@ def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True, ben
         plt.show()
 
     if benchmark:
-        for _ in range(50):
-            func(x0, A, b, mu, {'log': False})
-        start = time.time()
-        for _ in range(500):
-            func(x0, A, b, mu, {'log': False})
-        end = time.time()
-        print(f"Benchmark: {(end - start) * 2} ms")
+        doc: str = func.__doc__
+        skip_bench = doc.find("#no_benchmark") != -1
+
+        if skip_bench:
+            print(f"Benchmark for {func.__name__} is skipped.")
+            return x
+
+        avg_time = bench_mark(func)
+        print(f"Benchmark: {avg_time} ms")
+
+    return x

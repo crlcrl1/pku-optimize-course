@@ -1,7 +1,6 @@
 import cvxpy as cp
-import numpy as np
 
-from util import generate_data, group_lasso_loss
+from util import test_and_plot
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
@@ -10,8 +9,9 @@ def cvx_mosek(x0: NDArray,
               A: NDArray,
               b: NDArray,
               mu: float,
-              opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+              _opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     """
+    #no_benchmark
     Solve the group LASSO problem using CVXPY with MOSEK.
 
     Parameters
@@ -24,7 +24,7 @@ def cvx_mosek(x0: NDArray,
         Coefficients of the monomials in the constraints.
     mu : float
         The parameter in the geometric programming problem.
-    opt : dict, optional
+    _opt : dict, optional
         Options for the solver.
 
     Returns
@@ -38,23 +38,10 @@ def cvx_mosek(x0: NDArray,
     x.value = x0
     obj = 0.5 * cp.norm(A @ x - b, "fro") ** 2 + mu * cp.sum(cp.norm(x, axis=1))
     prob = cp.Problem(cp.Minimize(obj))
-    if opt is not None:
-        prob.solve(solver=cp.MOSEK, **opt)
-    else:
-        prob.solve(solver=cp.MOSEK)
+    prob.solve(solver=cp.MOSEK)
 
     return x.value, prob.solver_stats.num_iters, prob.solver_stats
 
 
-def cvx_mosek_test():
-    A, b, x0 = generate_data()
-    mu = 1e-2
-    x, iter, opt = cvx_mosek(x0, A, b, mu)
-    print(x)
-    print(iter)
-    print(opt)
-    print("Objective value: ", group_lasso_loss(A, b, x, mu))
-
-
 if __name__ == "__main__":
-    cvx_mosek_test()
+    test_and_plot(cvx_mosek, plot=False)

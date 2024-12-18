@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, test_and_plot
 
 
-def DG_primal(x0: NDArray,
+def GD_primal(x0: NDArray,
               A: NDArray,
               b: NDArray,
               mu: float,
@@ -116,4 +116,4 @@ def DG_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(DG_primal)
+    test_and_plot(GD_primal)

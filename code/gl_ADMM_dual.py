@@ -120,4 +120,4 @@ def ADMM_dual(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(ADMM_dual, log_scale=False, benchmark=True)
+    test_and_plot(ADMM_dual)

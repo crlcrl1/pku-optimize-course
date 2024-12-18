@@ -1,0 +1,302 @@
+\documentclass{article}
+
+\usepackage{neurips_2022}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[UTF8, fontset=adobe]{ctex}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\hypersetup{
+    colorlinks=true,
+    linkbordercolor=white
+}
+\setlength{\parindent}{2em}
+
+\title{最优化方法上机作业报告}
+
+\author{陈润璘 2200010848}
+
+\begin{document}
+
+\maketitle
+
+\section{问题描述}
+
+本次上机作业使用多种不同的方法求解 Group LASSO 问题:
+\begin{equation*}
+    \min_{x \in \mathbb{R}^{n\times l}} \frac{1}{2} \|Ax - b\|_2^2 +
+    \mu \|x\|_{1,2}
+\end{equation*}
+其中 $A \in \mathbb{R}^{m\times n}$, $b \in \mathbb{R}^{m\times l}$,
+\begin{equation*}
+    \|x\|_{1,2} = \sum_{i=1}^n \|x(i, 1:l)\|_2
+\end{equation*}
+其中 $x(i, 1:l)$ 表示矩阵 $x$ 的第 $i$ 行.
+
+\section{算法实现}
+
+\subsection{使用 CVX 直接求解}
+
+Python 中的 \href{https://www.cvxpy.org/}{CVXPY} 软件包可以接受多种类型的优化问题作为输入, 并且支持多种优化问题求解器作为后端. 它自动将输入的优化问题自动转换为后端求解器可以接受的形式, 调用求解器进行求解.
+
+在本次作业中, 我们使用 CVXPY 分别调用 Mosek 和 Gurobi 求解器求解 Group LASSO 问题. 使用这两个求解器的获得的结果将作为一些评价指标的基准.
+
+\subsection{使用 Mosek 和 Gurobi 求解}
+
+\href{https://www.mosek.com/}{Mosek} 和 \href{https://www.gurobi.com/}{Gurobi} 是两个商业的优化求解器, 他们都提供了 Python 接口. 在本次作业中, 我们使用这两个求解器求解 Group LASSO 问题.
+
+\subsubsection{Mosek}
+
+Mosek 求解器可以求解标准形式的二次锥规划问题, 因此我们需要将 Group LASSO 问题转换为二次锥规划问题. 我们可以将 Group LASSO 问题转换为如下 SOCP 的形式:
+\begin{equation*}
+    \begin{aligned}
+        \min_{s,t}\quad & \frac{1}{2} t + \mu (s_1 + s_2 + \cdots + s_n)\\
+        \text{s.t.}\quad & \|Ax - b\|_F^2 \le 2 \cdot t \cdot t_0\\
+        &t_0 = \frac{1}{2}\\
+        &\|x(i, :)\|_2 \le s_i,\,, i = 1, 2, \cdots, n
+    \end{aligned}
+\end{equation*}
+
+在文件 \verb|gl_mosek.py| 中实现了这个转换, 并使用 Mosek 求解器求解.
+
+\subsubsection{Gurobi}
+由于 Gurobi 的 Python 接口可以方便地添加二次约束, 因此在使用 Gurobi 求解器进行求解, 我们把 Group LASSO 问题转换为一个二次规划问题:
+\begin{equation*}
+    \begin{aligned}
+        \min_{x, z}\quad & \frac{1}{2} t + \mu (s_1 + s_2 + ... + s_n)\\
+        \text{s.t.}\quad &\|Ax-b\|_F^2 \le t^2\\
+        &\|x(i, :)\|_2^2 \le s_i^2,\,, i = 1, 2, \cdots, n\\
+        &t \ge 0, s_i \ge 0,\,, i = 1, 2, \cdots, n
+    \end{aligned}
+\end{equation*}
+
+在文件 \verb|gl_gurobi.py| 中实现了这个转换, 并使用 Gurobi 求解器求解.
+
+\subsection{次梯度法和光滑化的梯度法}
+
+\subsubsection{次梯度法}
+由于问题中的目标函数并不是处处可微的, 因此智能使用次梯度法进行求解. 不难计算出目标函数关于 $x$ 的次梯度
+\begin{equation*}
+    \partial f(x) = A^T(Ax - b) + \mu \partial \|x\|_{1,2}
+\end{equation*}
+其中 $\partial \|x\|_{1,2}$ 表示 $x$ 的次梯度, 其第 $i$ 行为
+\begin{equation*}
+    \partial \|x\|_{1,2}(i, :) =
+    \begin{cases}
+        \frac{x(i, :)}{\|x(i, :)\|_2} & x(i, :) \neq 0\\
+        \text{任意向量} & x(i, :) = 0
+    \end{cases}
+\end{equation*}
+在实际实现中, 对于 $x(i, :) = 0$ 的情况, 我们可以取 $\partial \|x\|_{1,2}(i, :)=0$.
+
+\subsubsection{光滑化的梯度法}
+为了使用梯度法求解问题, 我们可以对目标函数进行光滑化近似, 使其处处可微. 为此, 将目标函数中的 $\|x\|_{1,2}$ 替换为其光滑化近似函数:
+\begin{equation*}
+    l_\sigma(x) =
+    \begin{cases}
+        \|x\|_2^2 / 2\sigma, &\text{if } |x| \leq \sigma, \\
+        \|x\|_2 - \sigma / 2, &\text{otherwise},
+    \end{cases}
+\end{equation*}
+其中 $\sigma > 0$ 是一个参数, 并随着迭代步数的增加逐渐减小. 对于 $l_\sigma(x)$, 我们可以计算其梯度
+\begin{equation*}
+    \nabla l_\sigma(x) =
+    \begin{cases}
+        x / \sigma, &\text{if } |x| \leq \sigma, \\
+        x / \|x\|_2, &\text{otherwise},
+    \end{cases}
+\end{equation*}
+
+\subsubsection{连续化策略}
+在实际实现中, 不难发现当目标函数中的 $\mu$ 较小时, 无论使用次梯度法还是光滑化后的梯度法, 目标函数的值都很难收敛到最优值. 为了解决这个问题, 我们可以使用连续化策略, 将目标函数中的 $\mu$ 替换为一个较大的值, 并在迭代过程中逐渐减小 $\mu$ 的值直到它等于原来的值. 由于 $\mu$ 越大时这个优化问题越容易求解, 因此 这个方法大大加快了收敛速度.
+
+\subsubsection{步长选取}
+在算法实现中不难发现使用消失步长会因为迭代次数的增加导致步长过小, 从而使得算法收敛速度变慢, 而使用固定步长则对导致最优值在迭代后期无法进一步下降. 因此, 我们使用了固定步长和消失步长混合的策略. 具体地, 我们使用如下的步长选取策略:
+\begin{equation*}
+    \alpha_k =
+    \begin{cases}
+        \alpha_0, & \mu > \mu_0\, \text{or}\, (\mu=\mu_0\, \text{and}\, k \le k_0)\\
+        \frac{\alpha_0}{\sqrt{k-k_0}}, & \mu = \mu_0\,\text{and}\, k > k_0\\
+    \end{cases}
+\end{equation*}
+其中 $\alpha_0 = \frac{1}{\|A\|_2^2}$, $\mu_0$ 是 $\mu$ 的原始值, $k$ 是使用 $\mu_0$ 作为参数时的迭代次数, $k_0$ 是一个参数.
+
+\subsubsection{算法框架}
+总结上述的讨论, 我们可以得到如下的算法框架:
+\begin{algorithm}
+    \caption{次梯度算法或光滑化的梯度法}
+    \begin{algorithmic}
+        \State $x \gets x_0$, list $\gets [\mu\cdot t^s, \mu\cdot t^{s-1}, \cdots \mu \cdot t, \mu]$ \Comment{生成一个递减的 $\mu$ 序列}
+        \State $\sigma = \sigma_0$ \Comment{如果使用了光滑化的算法, 初始化 $\sigma$}
+        \For{$\mu$ in list}
+        \State $k \gets 0$
+        \While{not converge and $k < k_{\max}$}
+        \State 计算步长 $t$
+        \State 计算(次)梯度 grad
+        \State $x \gets x - t \cdot \text{grad}$ \Comment{更新 $x$}
+        \State $k \gets k + 1$
+        \EndWhile
+        \State $\sigma \gets \sigma / \beta$ \Comment{如果使用了光滑化的算法, 更新 $\sigma$}
+        \EndFor
+    \end{algorithmic}
+    \label{alg:gd}
+\end{algorithm}
+\newline
+其中, 只有在使用了光滑化的算法时才需要初始化或更新 $\sigma$, 其他情况下不需要.
+
+\subsection{近似点梯度法和 Nesterov 加速}
+
+\subsubsection{近似点梯度法}
+由于问题中的目标函数由一个可微函数和一个不可微函数组成, 因此我们可以使用近似点梯度法进行求解. 近似点梯度法的基本思想是在每次迭代中, 先使用梯度法更新可微的部分, 再应用\textbf{邻近算子}更新不可微的部分. 具体地, 在本问题中, 我们可以使用如下的迭代公式:
+\begin{equation*}
+    x_{k+1} = \text{prox}_{t_k\mu\|\cdot\|_{1,2}}(x_k - t_k \cdot \nabla f(x_k))
+\end{equation*}
+其中用邻近算子 $\text{prox}_h(x)$ 的定义如下:
+\begin{equation*}
+    \text{prox}_h(x) = \arg\min_y \left\{\frac{1}{2}\|y - x\|_2^2 + h(y)
+    \right\}
+\end{equation*}
+在这个问题中, 我们可以计算 $\text{prox}_{t\|\cdot\|_{1,2}}(x)$ 的解析解:
+\begin{equation*}
+    \text{prox}_{t\|\cdot\|_{1,2}}(x)(i,1:l) =
+    \begin{cases}
+        \left(1-\frac{t}{\|x(i,1:l)\|_2}\right)x, & \|x(i,1:l)\|_2 \ge t\\
+        0, & \|x(i,1:l)\|_2 < t
+    \end{cases}
+\end{equation*}
+
+近似点梯度法的框架与算法 \ref{alg:gd} 类似, 只是在更新 $x$ 时使用了邻近算子代替了次梯度.
+
+\subsubsection{Nesterov 加速}
+对于优化问题
+\begin{equation*}
+    \min_x\quad f(x)=g(x)+h(x)
+\end{equation*}
+其中 $g(x)$ 是可微凸函数, $h(x)$ 是不可微闭凸函数, 可以在近似点梯度法的基础上使用 Nesterov 算法加速. Nesterov 算法的迭代公式如下:
+\begin{equation*}
+    \begin{aligned}
+        y &= x_{k-1} + \frac{k-2}{k+1}(x_{k-1} - x_{k-2})\\
+        x_k &= \text{prox}_{t_k h}(y - t_k \nabla g(y))
+    \end{aligned}
+\end{equation*}
+在上式中我们约定 $x_{-1} = x_0$. 无论从理论还是算法实现的角度, Nesterov 算法都可以加速收敛速度.
+
+\subsection{增广拉格朗日函数法}
+
+在这一部分中, 我们能对 Group LASSO 的对偶问题使用增广拉格朗日函数法进行求解. Group LASSO 的对偶问题为
+\begin{equation*}
+    \begin{aligned}
+        \min_{Y\in \mathbb{R}^{m\times l}}\quad &\left<b, Y\right> + \frac{1}{2} \|Y\|_F^2
+        \\
+        \text{s.t.}\quad & \|A^T Y\|_{\infty,2} \leq \mu
+    \end{aligned}
+\end{equation*}
+为了使用增广拉格朗日函数法求解这个问题, 我们把对偶问题改写为如下的形式:
+\begin{equation}
+    \begin{aligned}
+        \min_{Y\in \mathbb{R}^{m\times l}}\quad &\left<b, Y\right> + \frac{1}{2} \|Y\|_F^2
+        \\
+        \text{s.t.}\quad & A^T Y = Z\\
+        & \|Z\|_{\infty,2} \leq \mu
+    \end{aligned}
+    \label{eq:dual}
+\end{equation}
+然后, 构造如下的增广拉格朗日函数:
+\begin{equation*}
+    L_\sigma(Y,Z;X) = \left<b, Y\right> + \frac{1}{2} \|Y\|_F^2 + \left<X, A^T Y - Z\right> + \frac{\sigma}{2} \|A^T Y - Z\|_F^2,\quad \|Z\|_{\infty,2} \leq \mu
+\end{equation*}
+
+对于增广拉格朗日函数, 使用如下的迭代格式:
+
+\begin{algorithm}
+    \caption{增广拉格朗日函数法}
+    \begin{algorithmic}
+        \State $Y \gets Y_0$, $Z \gets Z_0$, $X \gets X_0$ \Comment 初始化变量和乘子
+        \While{$\|A^T Y - Z\|_F > tol$}
+        \State $Y, Z \gets \arg \min_{Y,Z} L_\sigma(Y,Z;X)$ \Comment 更新变量
+        \State $X \gets X + \sigma(A^T Y -Z)$ \Comment 更新乘子
+        \EndWhile
+    \end{algorithmic}
+    \Return $-X$ \Comment 在构造的增广拉格朗日函数中, $X$ 与原问题的解差一个符号
+\end{algorithm}
+
+\subsection{交替方向乘子法}
+
+交替方法乘子法是一种求高效解优化问题的方法, 它通过将原问题分解为若干个子问题, 并通过交替求解这些子问题来求解原问题. 具体地, 对于优化问题
+\begin{equation*}
+    \begin{aligned}
+        \min_{x_1, x_2}\quad & f_1(x_1) + f_2(x_2)\\
+        \text{s.t.}\quad & A_1 x_1 + A_2 x_2 = b
+    \end{aligned}
+\end{equation*}
+构造增广拉格朗日函数:
+\begin{equation*}
+    L_\rho(x_1, x_2; \lambda) = f_1(x_1) + f_2(x_2) + \left<\lambda, A_1 x_1 + A_2 x_2 - b\right> + \frac{\rho}{2}\|A_1 x_1 + A_2 x_2 - b\|_2^2
+\end{equation*}
+其中 $\lambda$ 是拉格朗日乘子, $\rho$ 是惩罚因子. 交替方向乘子法的迭代格式如下:
+\begin{algorithm}
+    \caption{交替方向乘子法}
+    \begin{algorithmic}
+        \State $x_1 \gets x_{1,0}$, $x_2 \gets x_{2,0}$, $\lambda \gets \lambda_0$ \Comment 初始化变量和乘子
+        \While{not converge}
+        \State $x_1 \gets \arg \min_{x_1} L_\rho(x_1,x_2;\lambda)$ \Comment 更新 $x_1$
+        \State $x_2 \gets \arg \min_{x_2} L_\rho(x_1,x_2;\lambda)
+        $ \Comment 更新 $x_2$
+        \State $\lambda \gets \lambda + \tau(A_1 x_1 + A_2 x_2 - b)$ \Comment 更新乘子
+        \EndWhile
+    \end{algorithmic}
+\end{algorithm}
+\newline
+其中 $\tau\in \left(0,\frac{1+\sqrt{5}}{2}\right]$ 是步长.
+
+对于 Group LASSO 的对偶问题, 同样将其按公式 \ref{eq:dual} 拆分可以使用交替方向乘子法求解. 对于原问题, 可以类似地拆分:
+\begin{equation*}
+    \begin{aligned}
+        \min_{x \in \mathbb{R}^{n\times l}}\quad &\frac{1}{2} \|Ax - b\|_2^2 +
+        \mu \|y\|_{1,2}\\
+        \text{s.t.}\quad & x=y
+    \end{aligned}
+\end{equation*}
+然后构造增广拉格朗日函数:
+\begin{equation*}
+    L_\rho(x, y; \lambda) = \frac{1}{2} \|Ax - b\|_2^2 + \mu \|y\|_{1,2} + \left<\lambda, x - y\right> + \frac{\rho}{2}\|x - y\|_2^2
+\end{equation*}
+使用交替方向乘子法求解.
+
+\section{数值结果}
+
+\subsection{评价指标}
+我们使用多种指标来评价不同算法的性能:
+\begin{itemize}
+    \item 目标函数值 (Fval): 目标函数值越小, 说明算法越优秀.
+    \item 算法求得的解与 Mosek 求得的解的误差 (ErrMosek): 使用公式 $\frac{\|x - x_{\text{mosek}}\|_F}{1+\|x_{\text{mosek}}\|_F}$ 计算.
+    \item 算法求得的解与 Gurobi 求得的解的误差 (ErrGurobi): 使用公式 $\frac{\|x - x_{\text{gurobi}}\|_F}{1+\|x_{\text{gurobi}}\|_F}$ 计算.
+    \item 算法求得的的解与真解的误差 (ErrExact): 使用公式 $\frac{\|x - x_{\text{exact}}\|_F}{1+\|x_{\text{exact}}\|_F}$ 计算.
+    \item 算法运行时间 (Time): 先进行 50 次循环预热, 然后进行 500 次循环, 计算平均时间.
+    \item 算法迭代次数 (Iter): 算法迭代的次数, 包含两重循环的算法同时给出总循环的次数和外循环的次数.
+\end{itemize}
+
+\subsection{测试环境}
+
+\begin{itemize}
+    \item OS: ArchLinux 6.12.4-arch1-1
+    \item CPU: Intel(R) Core(TM) i7-13700H CPU @ 5.0GHz
+    \item Python: 3.12.7
+    \item NumPy: 2.2.0 compiled with MKL and TBB (\href{https://aur.archlinux.org/packages/python-numpy-mkl-tbb}{\textit{AUR Package}})
+    \item Mosek: 10.1.29
+    \item Gurobi: 12.0.0
+\end{itemize}
+
+\subsection{测试结果}
+
+\end{document}

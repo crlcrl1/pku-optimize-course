@@ -62,6 +62,8 @@ def ADMM_primal(x0: NDArray,
     inv = np.linalg.inv(A.T @ A + rho * np.eye(n))
     step_size = (1 + np.sqrt(5)) / 2
 
+    temp = A.T @ b
+
     while iter_count <= max_iter:
         if log and iter_count % 50 == 0:
             print(f"Iteration: {iter_count}, Objective value: {group_lasso_loss(A, b, x, mu)}")
@@ -69,7 +71,7 @@ def ADMM_primal(x0: NDArray,
         iter_count += 1
 
         # update x
-        x = inv @ (A.T @ b + rho * z - y)
+        x = inv @ (temp + rho * z - y)
 
         # update z
         z = x + y / rho

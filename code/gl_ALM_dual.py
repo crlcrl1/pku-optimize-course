@@ -124,4 +124,4 @@ def ALM_dual(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(ALM_dual, log_scale=False, benchmark=True)
+    test_and_plot(ALM_dual, benchmark=True)
