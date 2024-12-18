@@ -66,24 +66,25 @@ def sparisity(x: NDArray) -> float:
     return np.sum(np.abs(x) > (1e-6 * max_elem)) / elem_num
 
 
-def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True, benchmark: bool = False,
-                  log: bool = True, seed: int = 97006855, output: bool = True, **kwargs) -> NDArray:
+def run_method(func: Callable, plot: bool = True, log_scale: bool = True, benchmark: bool = False,
+               log: bool = True, seed: int = 97006855, output: bool = True, **kwargs) -> NDArray:
     import matplotlib.pyplot as plt
 
     A, b, x0, u = generate_data(seed)
     mu = 1e-2
     x, iter_count, out = func(x0, A, b, mu, {'log': log})
     if output:
-        print(f"Iteration count: {iter_count}")
-        print(f"Objective value: {group_lasso_loss(A, b, x, mu)}")
-        print(f"Sparsity: {sparisity(x)}")
-        print(f"Error exact: {np.linalg.norm(x - u, 'fro') / (1 + np.linalg.norm(u, 'fro'))}")
+        print(f"Objective value: {group_lasso_loss(A, b, x, mu):.8f}")
         gurobi_ans = kwargs.get('gurobi_ans', None)
-        if gurobi_ans is not None:
-            print(f"Error gurobi: {np.linalg.norm(x - gurobi_ans, 'fro') / (1 + np.linalg.norm(gurobi_ans, 'fro'))}")
         moesk_ans = kwargs.get('mosek_ans', None)
         if moesk_ans is not None:
-            print(f"Error mosek: {np.linalg.norm(x - moesk_ans, 'fro') / (1 + np.linalg.norm(moesk_ans, 'fro'))}")
+            print(f"Error mosek: {np.linalg.norm(x - moesk_ans, 'fro') / (1 + np.linalg.norm(moesk_ans, 'fro')):.6e}")
+        if gurobi_ans is not None:
+            print(
+                f"Error gurobi: {np.linalg.norm(x - gurobi_ans, 'fro') / (1 + np.linalg.norm(gurobi_ans, 'fro')):.6e}")
+        print(f"Error exact: {np.linalg.norm(x - u, 'fro') / (1 + np.linalg.norm(u, 'fro')):.6e}")
+        print(f"Sparsity: {sparisity(x):.4f}")
+        print(f"Iteration count: {iter_count}")
 
     if plot:
         losses = out['obj_val']
@@ -109,6 +110,6 @@ def test_and_plot(func: Callable, plot: bool = True, log_scale: bool = True, ben
             return x
 
         avg_time = bench_mark(func)
-        print(f"Benchmark: {avg_time} ms")
+        print(f"Benchmark: {avg_time:.4f} ms")
 
     return x

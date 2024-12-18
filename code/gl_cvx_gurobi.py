@@ -1,6 +1,6 @@
 import cvxpy as cp
 
-from util import test_and_plot
+from util import run_method
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
@@ -46,4 +46,4 @@ def cvx_gurobi(x0: NDArray,
 
 
 if __name__ == "__main__":
-    test_and_plot(cvx_gurobi, plot=False)
+    run_method(cvx_gurobi, plot=False)

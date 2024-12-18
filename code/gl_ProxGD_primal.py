@@ -3,7 +3,7 @@ from typing import Tuple, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from util import group_lasso_loss, extract_config, test_and_plot
+from util import group_lasso_loss, extract_config, run_method
 
 
 def ProxGD_primal(x0: NDArray,
@@ -104,4 +104,4 @@ def ProxGD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(ProxGD_primal, benchmark=True)
+    run_method(ProxGD_primal, benchmark=True)

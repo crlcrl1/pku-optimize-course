@@ -3,7 +3,7 @@ from typing import Tuple, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from util import group_lasso_loss, extract_config, test_and_plot
+from util import group_lasso_loss, extract_config, run_method
 
 
 def GD_primal(x0: NDArray,
@@ -97,7 +97,7 @@ def GD_primal(x0: NDArray,
             if k != last_idx:
                 step = step_size
             else:
-                step = step_size if inner_iter <= 50 else step_size / np.sqrt(inner_iter - 50)
+                step = step_size if inner_iter <= 80 else step_size / np.sqrt(inner_iter - 80)
 
             # Update the solution.
             x -= step * grad
@@ -116,4 +116,4 @@ def GD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(GD_primal)
+    run_method(GD_primal)

@@ -15,6 +15,9 @@
 \usepackage[UTF8, fontset=adobe]{ctex}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{resizegather}
+\usepackage{graphicx}
+\usepackage{subfigure}
 
 \hypersetup{
     colorlinks=true,
@@ -282,8 +285,9 @@ Mosek 求解器可以求解标准形式的二次锥规划问题, 因此我们需
     \item 算法求得的解与 Mosek 求得的解的误差 (ErrMosek): 使用公式 $\frac{\|x - x_{\text{mosek}}\|_F}{1+\|x_{\text{mosek}}\|_F}$ 计算.
     \item 算法求得的解与 Gurobi 求得的解的误差 (ErrGurobi): 使用公式 $\frac{\|x - x_{\text{gurobi}}\|_F}{1+\|x_{\text{gurobi}}\|_F}$ 计算.
     \item 算法求得的的解与真解的误差 (ErrExact): 使用公式 $\frac{\|x - x_{\text{exact}}\|_F}{1+\|x_{\text{exact}}\|_F}$ 计算.
+    \item 解的稀疏度 (Sparsity): 在这个问题中, 解的稀疏度定义为解中绝对值大于所有元素绝对值最大者的 $1e-6$ 倍的元素的个数除以总元素个数.
     \item 算法运行时间 (Time): 先进行 50 次循环预热, 然后进行 500 次循环, 计算平均时间.
-    \item 算法迭代次数 (Iter): 算法迭代的次数, 包含两重循环的算法同时给出总循环的次数和外循环的次数.
+    \item 算法迭代次数 (Iter): 算法迭代的次数, 如果算法迭代次数未知, 则记为 -1.
 \end{itemize}
 
 \subsection{测试环境}
@@ -292,11 +296,107 @@ Mosek 求解器可以求解标准形式的二次锥规划问题, 因此我们需
     \item OS: ArchLinux 6.12.4-arch1-1
     \item CPU: Intel(R) Core(TM) i7-13700H CPU @ 5.0GHz
     \item Python: 3.12.7
-    \item NumPy: 2.2.0 compiled with MKL and TBB (\href{https://aur.archlinux.org/packages/python-numpy-mkl-tbb}{\textit{AUR Package}})
+    \item NumPy: 2.2.0 compiled with MKL and TBB (\href{https://aur.archlinux.org/packages/python-numpy-mkl-tbb}{AUR Package})
     \item Mosek: 10.1.29
     \item Gurobi: 12.0.0
 \end{itemize}
 
-\subsection{测试结果}
+\subsection{测试结果及分析}
+各算法的测试结果如表 \ref{tab:result} 所示.
+\begin{table}[h]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{c|ccccccc}
+            \toprule
+            \hline
+            Algorithm & Fval & ErrMosek & ErrGurobi & ErrExact & Sparsity & Time(ms) & Iter\\
+            \hline
+            CVX-Mosek & 0.67057523 & 0.000000e+00 & 2.616487e-07 & 3.186258e-05 & 0.1025 & 272.3105 & 9\\
+            CVX-Gurobi & 0.67057524 & 2.616487e-07 & 0.000000e+00 & 3.199129e-05 & 0.1045 & 523.2296 & -1\\
+            Mosek & 0.67057522 & 1.838438e-07 & 4.217172e-07 & 3.177695e-05 & 0.1025 & 180.4748 & 10\\
+            Gurobi & 0.67067805 & 9.512311e-05 & 9.499679e-05 & 1.269824e-04 & 0.1074 & 1213.1462 & -1\\
+            Subgradient & 0.67057951 & 9.269432e-06 & 9.105488e-06 & 4.022177e-05 & 0.1289 & 305.9708 & 2868\\
+            Smoothed-Gradient & 0.67057639 & 6.464185e-06 & 6.291057e-06 & 3.766553e-05 & 0.1182 & 188.8896 & 1612\\
+            Proximate-Gradient & 0.67057528 & 3.053621e-06 & 2.887595e-06 & 3.416290e-05 & 0.1084 & 71.8990 & 799\\
+            Fast-Proximate-Gradient & 0.67057525 & 1.998454e-06 & 1.976405e-06 & 3.294275e-05 & 0.1035 & 26.4696 & 219\\
+            Augmented-Lagrangian-Dual & 0.67058902 & 3.235087e-05 & 3.226961e-05 & 5.904511e-05 & 0.0996 & 21.8342 & 255\\
+            Alternating-Direction-Dual & 0.67058799 & 3.082449e-05 & 3.072649e-05 & 5.906829e-05 & 0.0996 & 10.6626 & 66\\
+            Alternating-Direction-Primal & 0.67057523 & 2.294772e-07 & 4.606795e-07 & 3.176232e-05 & 0.1025 & 117.8849 & 1375\\
+            \hline
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{不同算法的测试结果}
+    \label{tab:result}
+\end{table}
+
+\subsubsection{次梯度法和光滑化的梯度法}
+
+从结果中可以看出, 即使使用了连续化策略, 次梯度法和光滑化的梯度法这两种直接的梯度算法的表现都不如其他算法. 此外, 在解的稀疏性上, 这两种算法也不如其他的算法. 从迭代次数和运行时间上看, 使用光滑的函数近似不可微的 $\|\cdot\|_{1,2}$ 可以提升算法的收敛速度.
+
+图 \ref{fig:gd} 展示了次梯度法和光滑化的梯度法的收敛曲线. 从图中可以看出, 使用了连续化策略后, 两种算法的目标函数值和梯度的范数都呈阶梯状下降, 在每次重启后都会有一个较大的下降, 从而加快了收敛速度.
+
+\begin{figure}[h]
+    \centering
+    \subfigure[次梯度法]{
+        \includegraphics[width=0.44\textwidth]{img/SGD.png}
+    }
+    \subfigure[光滑化的梯度法]{
+        \includegraphics[width=0.47\textwidth]{img/GD.png}
+    }
+    \caption{次梯度法和光滑化的梯度法的收敛曲线}
+    \label{fig:gd}
+\end{figure}
+
+\subsubsection{近似点梯度法和 Nesterov 加速}
+
+由于使用了邻近算子处理不可微的部分, 近似点梯度法的表现要好于次梯度法和光滑化的梯度法, 并且其求解速度快于两个商业求解器. 使用 Nesterov 加速后, 算法的收敛速度有了明显的提升. 在解的稀疏性上, 由于邻近算子会将范数较小的行直接置为 0, 因此近似点梯度法的解的稀疏性更好, 并且在不同的随机数种子下, 近似点梯度法的解的稀疏性也更加稳定.
+
+图 \ref{fig:prox} 展示了近似点梯度法和 Nesterov 加速的收敛曲线. 与图 \ref{fig:gd} 相比, 在使用了邻近算子后, 梯度不会出现重启后突然下降再快速上升的锯齿状图像, 而是更加平滑地下降.
+
+\begin{figure}[h]
+    \centering
+    \subfigure[近似点梯度法]{
+        \includegraphics[width=0.45\textwidth]{img/prox.png}
+    }
+    \subfigure[Nesterov 加速的近似点梯度法]{
+        \includegraphics[width=0.46\textwidth]{img/fprox.png}
+    }
+    \caption{近似点梯度法和 Nesterov 加速的近似点梯度法的收敛曲线}
+    \label{fig:prox}
+\end{figure}
+
+\subsubsection{增广拉格朗日函数法}
+
+对于目标函数的最优值, 对对偶问题使用增广拉格朗日函数法的结果要略差于其他算法, 但是其解的稀疏性要好于其他算法. 从迭代次数和运行时间上看, 增广拉格朗日函数法的表现也要好于次梯度法和光滑化的梯度法.
+
+图 \ref{fig:ALM} 展示了增广拉格朗日函数法的收敛曲线. 从图中可以看出, 在没有使用连续化策略的情况下, 目标函数的值和对偶间隙并没有呈阶梯状下降, 而是先平滑地下降, 然后在一定的迭代次数后稳定.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{img/ALM_dual.png}
+    \caption{增广拉格朗日函数法的收敛曲线}
+    \label{fig:ALM}
+\end{figure}
+
+\subsubsection{交替方向乘子法}
+
+对于对偶问题, 交替方向乘子法的表现要好于增广拉格朗日函数法, 并且是所有算法中最快的. 从解的稀疏性上看, 交替方向乘子法的解的稀疏性与增广拉格朗日函数法相当. 从迭代次数和运行时间上看, 交替方向乘子法的表现也要好于增广拉格朗日函数法. 但是, 与增广拉格朗日函数法相同, 交替方向乘子法的最优值要略差于其他算法.
+
+对于原问题, 交替方向乘子法得到的解十分接近 Mosek 和 Gurobi 的解, 并且解的稀疏性也很好. 但是, 直接对原问题使用交替方向乘子法的收敛速度要慢于对偶问题.
+
+图 \ref{fig:ADMM} 展示了交替方向乘子法的收敛曲线. 从图中可以看出, 与增广拉格朗日函数法类似, 对偶问题的交替方向乘子法的目标函数值和对偶间隙也是先平滑地下降, 然后在一定的迭代次数后稳定. 对原问题, 交替方向乘子法的目标函数值先迅速下降, 然后缓慢下降直到稳定.
+
+\begin{figure}[h]
+    \centering
+    \subfigure[对偶问题的收敛曲线]{
+        \includegraphics[width=0.52\textwidth]{img/ADMM_dual.png}
+    }
+    \subfigure[原问题的收敛曲线]{
+        \includegraphics[width=0.25\textwidth]{img/ADMM_primal.png}
+    }
+    \caption{交替方向乘子法的收敛曲线}
+    \label{fig:ADMM}
+\end{figure}
 
 \end{document}

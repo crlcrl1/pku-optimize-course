@@ -11,7 +11,7 @@ from gl_cvx_gurobi import cvx_gurobi
 from gl_cvx_mosek import cvx_mosek
 from gl_gurobi import gurobi
 from gl_mosek import mosek
-from util import test_and_plot
+from util import run_method
 
 METHODS = {
     "cvx_gurobi": cvx_gurobi,
@@ -39,18 +39,18 @@ def add_args(parser: argparse.ArgumentParser):
 
 
 def run(method: str, plot: bool, log_scale: bool, benchmark: bool, log: bool, seed: int):
-    gurobi_ans = test_and_plot(cvx_gurobi, False, seed=seed, output=False, log=False)
-    mosek_ans = test_and_plot(cvx_mosek, False, seed=seed, output=False, log=False)
+    gurobi_ans = run_method(cvx_gurobi, False, seed=seed, output=False, log=False)
+    mosek_ans = run_method(cvx_mosek, False, seed=seed, output=False, log=False)
     if method is None:
         for method in METHODS:
             print(f"========= Method {method} =========")
-            test_and_plot(METHODS[method], plot, log_scale, benchmark, log, seed, gurobi_ans=gurobi_ans,
-                          mosek_ans=mosek_ans)
+            run_method(METHODS[method], plot, log_scale, benchmark, log, seed, gurobi_ans=gurobi_ans,
+                       mosek_ans=mosek_ans)
             print()
     else:
         print(f"========= Method {method} =========")
-        test_and_plot(METHODS[method], plot, log_scale, benchmark, log, seed, gurobi_ans=gurobi_ans,
-                      mosek_ans=mosek_ans)
+        run_method(METHODS[method], plot, log_scale, benchmark, log, seed, gurobi_ans=gurobi_ans,
+                   mosek_ans=mosek_ans)
 
 
 def main():

@@ -3,7 +3,7 @@ from typing import Tuple, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from util import group_lasso_loss, extract_config, test_and_plot
+from util import group_lasso_loss, extract_config, run_method
 
 
 def ALM_dual(x0: NDArray,
@@ -124,4 +124,4 @@ def ALM_dual(x0: NDArray,
 
 
 if __name__ == '__main__':
-    test_and_plot(ALM_dual, benchmark=True)
+    run_method(ALM_dual, benchmark=True)

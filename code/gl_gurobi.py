@@ -1,7 +1,7 @@
 import gurobipy as gp
 import numpy as np
 
-from util import test_and_plot
+from util import run_method
 from gurobipy import GRB
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
@@ -105,4 +105,4 @@ def gurobi(x0: NDArray,
 
 
 if __name__ == "__main__":
-    test_and_plot(gurobi, plot=False)
+    run_method(gurobi, plot=False)

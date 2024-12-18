@@ -2,7 +2,7 @@ import mosek as msk
 import numpy as np
 import sys
 
-from util import test_and_plot
+from util import run_method
 from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
@@ -130,4 +130,4 @@ def mosek(_x0: NDArray,
 
 
 if __name__ == "__main__":
-    test_and_plot(mosek, plot=False)
+    run_method(mosek, plot=False)

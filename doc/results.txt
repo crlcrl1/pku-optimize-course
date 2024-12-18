@@ -1,0 +1,98 @@
+========= Method cvx_gurobi =========
+Objective value: 0.67057524
+Error mosek: 2.616487e-07
+Error gurobi: 0.000000e+00
+Error exact: 3.199129e-05
+Sparsity: 0.1045
+Iteration count: -1
+Benchmark for cvx_gurobi is skipped.
+
+========= Method cvx_mosek =========
+Objective value: 0.67057523
+Error mosek: 0.000000e+00
+Error gurobi: 2.616487e-07
+Error exact: 3.186258e-05
+Sparsity: 0.1025
+Iteration count: 9
+Benchmark for cvx_mosek is skipped.
+
+========= Method gurobi =========
+Objective value: 0.67067805
+Error mosek: 9.512311e-05
+Error gurobi: 9.499679e-05
+Error exact: 1.269824e-04
+Sparsity: 0.1074
+Iteration count: -1
+Benchmark for gurobi is skipped.
+
+========= Method mosek =========
+Objective value: 0.67057522
+Error mosek: 1.838438e-07
+Error gurobi: 4.217172e-07
+Error exact: 3.177695e-05
+Sparsity: 0.1025
+Iteration count: 10
+Benchmark for mosek is skipped.
+
+========= Method ProxGD_primal =========
+Objective value: 0.67057528
+Error mosek: 3.053621e-06
+Error gurobi: 2.887595e-06
+Error exact: 3.416290e-05
+Sparsity: 0.1084
+Iteration count: 799
+Benchmark: 71.8990 ms
+
+========= Method FProxGD_primal =========
+Objective value: 0.67057525
+Error mosek: 1.998454e-06
+Error gurobi: 1.976405e-06
+Error exact: 3.294275e-05
+Sparsity: 0.1035
+Iteration count: 219
+Benchmark: 26.4696 ms
+
+========= Method SGD_primal =========
+Objective value: 0.67057951
+Error mosek: 9.269432e-06
+Error gurobi: 9.105488e-06
+Error exact: 4.022177e-05
+Sparsity: 0.1289
+Iteration count: 2868
+Benchmark: 305.9708 ms
+
+========= Method GD_primal =========
+Objective value: 0.67057639
+Error mosek: 6.464185e-06
+Error gurobi: 6.291057e-06
+Error exact: 3.766553e-05
+Sparsity: 0.1182
+Iteration count: 1612
+Benchmark: 188.8896 ms
+
+========= Method ADMM_primal =========
+Objective value: 0.67057523
+Error mosek: 2.294772e-07
+Error gurobi: 4.606795e-07
+Error exact: 3.176232e-05
+Sparsity: 0.1025
+Iteration count: 1375
+Benchmark: 117.8849 ms
+
+========= Method ADMM_dual =========
+Objective value: 0.67058799
+Error mosek: 3.082449e-05
+Error gurobi: 3.072649e-05
+Error exact: 5.906829e-05
+Sparsity: 0.0996
+Iteration count: 66
+Benchmark: 10.6626 ms
+
+========= Method ALM_dual =========
+Objective value: 0.67058902
+Error mosek: 3.235087e-05
+Error gurobi: 3.226961e-05
+Error exact: 5.904511e-05
+Sparsity: 0.0996
+Iteration count: 40
+Benchmark: 21.8342 ms
