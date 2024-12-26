@@ -6,16 +6,16 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, run_method
 
 
-def ADMM_dual(x0: NDArray,
-              A: NDArray,
-              b: NDArray,
-              mu: float,
-              opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_ADMM_dual(x0: NDArray,
+                 A: NDArray,
+                 b: NDArray,
+                 mu: float,
+                 opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     r"""
     Solve the group LASSO problem using Alternating Direction Method of Multipliers (ADMM).
 
     dual form of the group LASSO problem:
-    :math:
+    ..math::
     $$
     \begin{align*}
     \min_{Y\in \mathbb{R}^{m\times l}}\, &\left<b, Y\right> + \frac{1}{2} \|Y\|_F^2
@@ -25,7 +25,7 @@ def ADMM_dual(x0: NDArray,
     $$
 
     we rewrite the problem as
-    :math:
+    ..math::
     $$
     \begin{align*}
     \min_{Y\in \mathbb{R}^{m\times l}}\, &\left<b, Y\right> + \frac{1}{2} \|Y\|_F^2
@@ -36,7 +36,7 @@ def ADMM_dual(x0: NDArray,
     $$
 
     The augmented Lagrangian is
-    :math:
+    ..math::
     $$
     L(Y,Z;X) = \left<b, Y\right> + \frac{1}{2} \|Y\|_F^2 + \left<X, A^T Y - Z\right> + \frac{\sigma}{2} \|A^T Y - Z\|_F^2\\
      \text{where } \|Z(:,i)\|_2 \leq \mu, \forall i = 1,2,\ldots,l
@@ -77,6 +77,7 @@ def ADMM_dual(x0: NDArray,
     tol = extract_config(opt, 'tol', 1e-8)
     max_iter = extract_config(opt, 'maxiter', 5000)
     log = extract_config(opt, 'log', True)
+    benchmark = extract_config(opt, 'benchmark', False)
 
     x = x0
     y = np.zeros((m, l), dtype=float)
@@ -109,10 +110,12 @@ def ADMM_dual(x0: NDArray,
         # update x
         x = x + step_size * rho * (A.T @ y - z)
 
-        obj_val = group_lasso_loss(A, b, -x, mu)
-        obj_val_list.append(obj_val)
-        dual_val = np.sum(b * y) + 0.5 * np.linalg.norm(y, "fro") ** 2
-        dual_gap_list.append(abs(obj_val - dual_val))
+        if not benchmark:
+            obj_val = group_lasso_loss(A, b, -x, mu)
+            obj_val_list.append(obj_val)
+            dual_val = np.sum(b * y) + 0.5 * np.linalg.norm(y, "fro") ** 2
+            dual_gap_list.append(abs(obj_val - dual_val))
+
         if np.linalg.norm(A.T @ y - z, ord="fro") < tol:
             break
 
@@ -120,4 +123,4 @@ def ADMM_dual(x0: NDArray,
 
 
 if __name__ == '__main__':
-    run_method(ADMM_dual)
+    run_method(gl_ADMM_dual, benchmark=True)

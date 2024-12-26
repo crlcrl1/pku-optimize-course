@@ -50,10 +50,10 @@ def bench_mark(func: Callable) -> float:
     A, b, x0, u = generate_data()
     mu = 1e-2
     for _ in range(50):
-        func(x0, A, b, mu, {'log': False})
+        func(x0, A, b, mu, {'log': False, 'benchmark': True})
     start = time.time()
     for _ in range(500):
-        func(x0, A, b, mu, {'log': False})
+        func(x0, A, b, mu, {'log': False, 'benchmark': True})
     end = time.time()
     return (end - start) * 2
 

@@ -6,15 +6,16 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, run_method
 
 
-def GD_primal(x0: NDArray,
-              A: NDArray,
-              b: NDArray,
-              mu: float,
-              opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_GD_primal(x0: NDArray,
+                 A: NDArray,
+                 b: NDArray,
+                 mu: float,
+                 opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     r"""
     Solve the group LASSO problem with smooth approximation using Gradient Descent.
     
     We will use
+    ..math::
     $$
     l_sigma(x) = \begin{cases}
         \|x\|_2^2 / 2\sigma, & \text{if } |x| \leq \sigma, \\
@@ -59,6 +60,7 @@ def GD_primal(x0: NDArray,
     max_iter = extract_config(opt, 'max_iter', 5000)
     log = extract_config(opt, 'log', True)
     sigma = extract_config(opt, 'sigma', 1e-6)
+    benchmark = extract_config(opt, 'benchmark', False)
     orig_mu = mu
 
     mu_list = list(reversed([(4 ** i) * mu for i in range(7)]))
@@ -84,7 +86,7 @@ def GD_primal(x0: NDArray,
             iter_count += 1
             inner_iter += 1
 
-            if iter_count > max_iter or (inner_iter > 250 and k != last_idx):
+            if iter_count > max_iter or (inner_iter > 150 and k != last_idx):
                 break
 
             # Compute the gradient.
@@ -101,13 +103,15 @@ def GD_primal(x0: NDArray,
 
             # Update the solution.
             x -= step * grad
+            x[np.abs(x) < 1e-4] = 0
             f_new = group_lasso_loss(A, b, x, mu)
-            grad_norm = np.linalg.norm(grad, ord="fro")
 
-            obj_val_list.append(f_new)
-            grad_norm_list.append(grad_norm)
+            if not benchmark:
+                grad_norm = np.linalg.norm(grad, ord="fro")
+                obj_val_list.append(f_new)
+                grad_norm_list.append(grad_norm)
 
-            if grad_norm * step < tol or abs(f_last - f_new) < tol:
+            if abs(f_last - f_new) < tol:
                 break
 
             f_last = f_new
@@ -116,4 +120,4 @@ def GD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    run_method(GD_primal)
+    run_method(gl_GD_primal, benchmark=True)

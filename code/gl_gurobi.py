@@ -7,20 +7,23 @@ from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
 
-def gurobi(x0: NDArray,
-           A: NDArray,
-           b: NDArray,
-           mu: float,
-           opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_gurobi(x0: NDArray,
+              A: NDArray,
+              b: NDArray,
+              mu: float,
+              opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     """
     #no_benchmark
     Solve the group LASSO problem using Gurobi directly.
 
     We rewrite the group LASSO problem as a SOCP problem:
 
+    ..math::
+    $$
     min     0.5 * t + mu * (s1 + s2 + ... + sn)
     s.t.    ||Ax - b||_F^2 <= t
             ||x(i, :)||_2 <= si, i = 1, 2, ..., n
+    $$
 
     Since it's easier to input a QCQP problem to Gurobi, we input the constraints as quadratic constraints.
 
@@ -100,4 +103,4 @@ def gurobi(x0: NDArray,
 
 
 if __name__ == "__main__":
-    run_method(gurobi, plot=False)
+    run_method(gl_gurobi, plot=False)

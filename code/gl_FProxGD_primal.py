@@ -6,11 +6,11 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, run_method
 
 
-def FProxGD_primal(x0: NDArray,
-                   A: NDArray,
-                   b: NDArray,
-                   mu: float,
-                   opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_FProxGD_primal(x0: NDArray,
+                      A: NDArray,
+                      b: NDArray,
+                      mu: float,
+                      opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     """
     Solve the group LASSO problem using Fast Proximal Gradient Descent.
 
@@ -50,6 +50,7 @@ def FProxGD_primal(x0: NDArray,
     tol = extract_config(opt, 'tol', 1e-8)
     max_iter = extract_config(opt, 'maxiter', 5000)
     log = extract_config(opt, 'log', True)
+    benchmark = extract_config(opt, 'benchmark', False)
     orig_mu = mu
 
     mu_list = list(reversed([(6 ** i) * mu for i in range(5)]))
@@ -87,14 +88,16 @@ def FProxGD_primal(x0: NDArray,
             # Apply prox
             norms = np.linalg.norm(x, axis=1, keepdims=True)
             x -= x * np.minimum(1, mu * step / norms)
+            x[np.abs(x) < 1e-4] = 0
 
             f_new = group_lasso_loss(A, b, x, mu)
-            grad_norm = np.linalg.norm(grad, ord="fro")
 
-            obj_val_list.append(f_new)
-            grad_norm_list.append(grad_norm)
+            if not benchmark:
+                grad_norm = np.linalg.norm(grad, ord="fro")
+                obj_val_list.append(f_new)
+                grad_norm_list.append(grad_norm)
 
-            if grad_norm * step < tol or abs(f_last - f_new) < tol:
+            if abs(f_last - f_new) < tol:
                 break
 
             f_last = f_new
@@ -105,4 +108,4 @@ def FProxGD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    run_method(FProxGD_primal, benchmark=True)
+    run_method(gl_FProxGD_primal, benchmark=True)

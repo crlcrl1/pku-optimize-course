@@ -1,5 +1,7 @@
 # Optimize Homework
 
+This one is the same as the file `README.md` in the root directory, just to satisfy the requirement of the homework. You may need to rename this file to `README.md` to view it properly.
+
 ## Software Requirements
 
 This program is tested on Python 3.12.7 and the files exclude `gl_cvx_mosek.py`, `gl_cvx_gurobi.py`, `gl_mosek.py`, `gl_gurobi.py` are tested on Python 3.13.1.

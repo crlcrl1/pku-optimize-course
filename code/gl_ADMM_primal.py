@@ -6,11 +6,11 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, run_method
 
 
-def ADMM_primal(x0: NDArray,
-                A: NDArray,
-                b: NDArray,
-                mu: float,
-                opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_ADMM_primal(x0: NDArray,
+                   A: NDArray,
+                   b: NDArray,
+                   mu: float,
+                   opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     r"""
     Solve the group LASSO problem using Alternating Direction Method of Multipliers (ADMM).
 
@@ -49,6 +49,8 @@ def ADMM_primal(x0: NDArray,
     tol = extract_config(opt, 'tol', 1e-7)
     max_iter = extract_config(opt, 'maxiter', 5000)
     log = extract_config(opt, 'log', True)
+    benchmark = extract_config(opt, 'benchmark', False)
+    alpha = extract_config(opt, 'alpha', 1 / 6)
 
     x = x0
     y = np.zeros((n, l), dtype=float)
@@ -74,15 +76,16 @@ def ADMM_primal(x0: NDArray,
         x = inv @ (temp + rho * z - y)
 
         # update z
-        z = x + y / rho
+        z = x + alpha * y
         norms = np.linalg.norm(z, ord=2, axis=1, keepdims=True)
-        z -= z * np.minimum(1, (mu / rho) / norms)
+        z -= z * np.minimum(1, (mu * alpha) / norms)
 
         # update y
         y = y + step_size * rho * (x - z)
 
-        obj_val = group_lasso_loss(A, b, x, mu)
-        obj_val_list.append(obj_val)
+        if not benchmark:
+            obj_val = group_lasso_loss(A, b, x, mu)
+            obj_val_list.append(obj_val)
         if np.linalg.norm(x - z, ord="fro") < tol:
             break
 
@@ -90,4 +93,4 @@ def ADMM_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    run_method(ADMM_primal, log_scale=False, benchmark=True)
+    run_method(gl_ADMM_primal, log_scale=False, benchmark=False)

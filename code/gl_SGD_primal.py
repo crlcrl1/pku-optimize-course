@@ -6,11 +6,11 @@ from numpy.typing import NDArray
 from util import group_lasso_loss, extract_config, run_method
 
 
-def SGD_primal(x0: NDArray,
-               A: NDArray,
-               b: NDArray,
-               mu: float,
-               opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_SGD_primal(x0: NDArray,
+                  A: NDArray,
+                  b: NDArray,
+                  mu: float,
+                  opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     """
     Solve the group LASSO problem using Subgradient Descent.
     
@@ -49,13 +49,11 @@ def SGD_primal(x0: NDArray,
     tol = extract_config(opt, 'tol', 1e-8)
     max_iter = extract_config(opt, 'maxiter', 5000)
     log = extract_config(opt, 'log', True)
+    benchmark = extract_config(opt, 'benchmark', False)
     orig_mu = mu
 
     mu_list = list(reversed([(2.5 ** i) * mu for i in range(8)]))
     last_idx = len(mu_list) - 1
-
-    if log:
-        print(f"Start the subgradient descent algorithm with step size {step_size}.")
 
     obj_val_list = []
     grad_norm_list = []
@@ -73,7 +71,7 @@ def SGD_primal(x0: NDArray,
             iter_count += 1
             inner_iter += 1
 
-            if iter_count > max_iter or (inner_iter > 400 and k != last_idx):
+            if iter_count > max_iter or (inner_iter > 350 and k != last_idx):
                 break
 
             # Compute the gradient.
@@ -89,13 +87,15 @@ def SGD_primal(x0: NDArray,
 
             # Update the solution.
             x -= step * grad
+            x[np.abs(x) < 1e-4] = 0
             f_new = group_lasso_loss(A, b, x, mu)
-            grad_norm = np.linalg.norm(grad, ord="fro")
 
-            obj_val_list.append(f_new)
-            grad_norm_list.append(grad_norm)
+            if not benchmark:
+                grad_norm = np.linalg.norm(grad, ord="fro")
+                obj_val_list.append(f_new)
+                grad_norm_list.append(grad_norm)
 
-            if grad_norm * step < tol or abs(f_last - f_new) < tol:
+            if abs(f_last - f_new) < tol:
                 break
 
             f_last = f_new
@@ -104,4 +104,4 @@ def SGD_primal(x0: NDArray,
 
 
 if __name__ == '__main__':
-    run_method(SGD_primal)
+    run_method(gl_SGD_primal, benchmark=True)

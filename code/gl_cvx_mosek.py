@@ -5,11 +5,11 @@ from numpy.typing import NDArray
 from typing import Tuple, Dict, Optional
 
 
-def cvx_mosek(x0: NDArray,
-              A: NDArray,
-              b: NDArray,
-              mu: float,
-              _opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
+def gl_cvx_mosek(x0: NDArray,
+                 A: NDArray,
+                 b: NDArray,
+                 mu: float,
+                 _opt: Optional[Dict] = None) -> Tuple[NDArray, int, Dict]:
     """
     #no_benchmark
     Solve the group LASSO problem using CVXPY with MOSEK.
@@ -44,4 +44,4 @@ def cvx_mosek(x0: NDArray,
 
 
 if __name__ == "__main__":
-    run_method(cvx_mosek, plot=False)
+    run_method(gl_cvx_mosek, plot=False)

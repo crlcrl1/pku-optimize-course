@@ -1,30 +1,30 @@
 import argparse
 
-from gl_ADMM_dual import ADMM_dual
-from gl_ADMM_primal import ADMM_primal
-from gl_ALM_dual import ALM_dual
-from gl_FProxGD_primal import FProxGD_primal
-from gl_GD_primal import GD_primal
-from gl_ProxGD_primal import ProxGD_primal
-from gl_SGD_primal import SGD_primal
-from gl_cvx_gurobi import cvx_gurobi
-from gl_cvx_mosek import cvx_mosek
-from gl_gurobi import gurobi
-from gl_mosek import mosek
+from gl_ADMM_dual import gl_ADMM_dual
+from gl_ADMM_primal import gl_ADMM_primal
+from gl_ALM_dual import gl_ALM_dual
+from gl_FProxGD_primal import gl_FProxGD_primal
+from gl_GD_primal import gl_GD_primal
+from gl_ProxGD_primal import gl_ProxGD_primal
+from gl_SGD_primal import gl_SGD_primal
+from gl_cvx_gurobi import gl_cvx_gurobi
+from gl_cvx_mosek import gl_cvx_mosek
+from gl_gurobi import gl_gurobi
+from gl_mosek import gl_mosek
 from util import run_method
 
 METHODS = {
-    "cvx_gurobi": cvx_gurobi,
-    "cvx_mosek": cvx_mosek,
-    "gurobi": gurobi,
-    "mosek": mosek,
-    "ProxGD_primal": ProxGD_primal,
-    "FProxGD_primal": FProxGD_primal,
-    "SGD_primal": SGD_primal,
-    "GD_primal": GD_primal,
-    "ADMM_primal": ADMM_primal,
-    "ADMM_dual": ADMM_dual,
-    "ALM_dual": ALM_dual
+    "cvx_gurobi": gl_cvx_gurobi,
+    "cvx_mosek": gl_cvx_mosek,
+    "gurobi": gl_gurobi,
+    "mosek": gl_mosek,
+    "ProxGD_primal": gl_ProxGD_primal,
+    "FProxGD_primal": gl_FProxGD_primal,
+    "SGD_primal": gl_SGD_primal,
+    "GD_primal": gl_GD_primal,
+    "ADMM_primal": gl_ADMM_primal,
+    "ADMM_dual": gl_ADMM_dual,
+    "ALM_dual": gl_ALM_dual
 }
 
 
@@ -39,8 +39,8 @@ def add_args(parser: argparse.ArgumentParser):
 
 
 def run(method: str, plot: bool, log_scale: bool, benchmark: bool, log: bool, seed: int):
-    gurobi_ans = run_method(cvx_gurobi, False, seed=seed, output=False, log=False)
-    mosek_ans = run_method(cvx_mosek, False, seed=seed, output=False, log=False)
+    gurobi_ans = run_method(gl_cvx_gurobi, False, seed=seed, output=False, log=False)
+    mosek_ans = run_method(gl_cvx_mosek, False, seed=seed, output=False, log=False)
     if method is None:
         for method in METHODS:
             print(f"========= Method {method} =========")
