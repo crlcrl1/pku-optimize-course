@@ -12,7 +12,7 @@
 \usepackage{xcolor}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage[UTF8, fontset=adobe]{ctex}
+\usepackage[UTF8]{ctex}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{resizegather}
@@ -319,10 +319,10 @@ Mosek 求解器可以求解标准形式的二次锥规划问题, 因此我们需
             CVX-Gurobi & 0.67057524 & 2.616487e-07 & 0.000000e+00 & 3.199129e-05 & 0.1045 & 523.2296 & 10\\
             Mosek & 0.67057522 & 1.838438e-07 & 4.217172e-07 & 3.177695e-05 & 0.1025 & 180.4748 & 10\\
             Gurobi & 0.67058679 & 3.174155e-05 & 3.186995e-05 & 1.748776e-07 & 0.0996 & 1072.6585 & 8\\
-            Subgradient & 0.67057529 & 9.269432e-06 & 9.105488e-06 & 3.342973e-05 & 0.0996 & 210.9301 & 1887\\
-            Smoothed-Gradient & 0.67057529 & 6.464185e-06 & 6.291057e-06 & 3.340779e-05 & 0.0996 & 110.7308 & 856\\
-            Proximate-Gradient & 0.67057529 & 3.053621e-06 & 2.887595e-06 & 3.331597e-05 & 0.0996 & 67.9360 & 684\\
-            Fast-Proximate-Gradient & 0.67057561 & 1.998454e-06 & 1.976405e-06 & 2.635280e-05 & 0.0996 & 25.5381 & 198\\
+            Subgradient & 0.67057529 & 2.903549e-06 & 9.105488e-06 & 2.409748e-06 & 0.0996 & 210.9301 & 1887\\
+            Smoothed-Gradient & 0.67057529 & 3.042466e-06 & 2.592209e-06 & 3.340779e-05 & 0.0996 & 110.7308 & 856\\
+            Proximate-Gradient & 0.67057529 & 2.993171e-06 & 2.620100e-06 & 3.331597e-05 & 0.0996 & 67.9360 & 684\\
+            Fast-Proximate-Gradient & 0.67057561 & 1.998454e-06 & 7.089518e-06 & 9.049563e-06 & 0.0996 & 25.5381 & 198\\
             Augmented-Lagrangian-Dual & 0.67058902 & 3.235087e-05 & 3.226961e-05 & 5.904511e-05 & 0.0996 & 20.7258 & 255\\
             Alternating-Direction-Dual & 0.67058799 & 3.082449e-05 & 3.072649e-05 & 5.906829e-05 & 0.0996 & 8.0282 & 66\\
             Alternating-Direction-Primal & 0.67057523 & 2.294772e-07 & 4.606795e-07 & 3.176232e-05 & 0.1025 & 73.6252 & 1375\\
@@ -343,10 +343,10 @@ Mosek 求解器可以求解标准形式的二次锥规划问题, 因此我们需
 \begin{figure}[h]
     \centering
     \subfigure[次梯度法]{
-        \includegraphics[width=0.44\textwidth]{img/SGD.png}
+        \includegraphics[width=0.455\textwidth]{img/SGD.png}
     }
     \subfigure[光滑化的梯度法]{
-        \includegraphics[width=0.47\textwidth]{img/GD.png}
+        \includegraphics[width=0.448\textwidth]{img/GD.png}
     }
     \caption{次梯度法和光滑化的梯度法的收敛曲线}
     \label{fig:gd}
